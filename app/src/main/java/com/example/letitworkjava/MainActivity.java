@@ -2,9 +2,12 @@ package com.example.letitworkjava;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -13,20 +16,32 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.util.Linkify;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int MY_PERMISSIONS_REQUEST_RECEIVE_SMS = 0;
     private TextView messageTextView;
     private BroadcastReceiver updateReceiver;
+    private final List<String> previousMessages = new ArrayList<>(); // Declaration of previousMessages list
+
+    private TextView previousMessagesTextView; // Declaration of previousMessagesTextView
+
+    // ... Other code in MainActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize messageTextView and previousMessagesTextView
+        messageTextView = findViewById(R.id.messageTextView);
+        previousMessagesTextView = findViewById(R.id.previousMessagesTextView);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -40,28 +55,35 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        messageTextView = findViewById(R.id.messageTextView);
-
         // Register a BroadcastReceiver to update the TextView
         updateReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction() != null && intent.getAction().equals("UPDATE_TEXTVIEW")) {
                     String receivedMessage = intent.getStringExtra("message");
+                    String senderPhoneNumber = intent.getStringExtra("sender");
 
-                    // Update the TextView with the received message
-                    if (messageTextView != null) {
-                        messageTextView.setText(receivedMessage);
+                    // Check if the sender matches the desired user's phone number or name
+                    if (Objects.equals(senderPhoneNumber, "+919080254076")) {
+                        // Trigger alarm/notification for the read message (Feature 2)
+                        //triggerAlarmOrNotification();
+
+                        // Store the message in a database or display it below the new messages (Feature 3)
+                        storeAndDisplayMessage(receivedMessage);
                     }
                 }
             }
+
         };
         registerReceiver(updateReceiver, new IntentFilter("UPDATE_TEXTVIEW"));
         messageTextView = findViewById(R.id.messageTextView);
+        previousMessagesTextView = findViewById(R.id.previousMessagesTextView);
 
         // Enable auto-linking for URLs in the TextView
         messageTextView.setAutoLinkMask(Linkify.WEB_URLS);
         messageTextView.setMovementMethod(new CustomLinkMovementMethod()); // Custom movement method to handle link clicks
+        previousMessagesTextView.setAutoLinkMask((Linkify.WEB_URLS));
+        previousMessagesTextView.setMovementMethod(new CustomLinkMovementMethod());
     }
 
     // Custom LinkMovementMethod to handle link clicks
@@ -99,6 +121,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+
+    private void storeAndDisplayMessage(String message) {
+        // Store the message in the list of previous messages
+        previousMessages.add(message);
+
+        // Update the TextViews to display the received message and all previous messages
+        messageTextView.setText(message);
+        updatePreviousMessagesTextView();
+    }
+
+
+    // Update the previousMessagesTextView with all previous messages
+    private void updatePreviousMessagesTextView() {
+        StringBuilder previousMessagesText = new StringBuilder("Previously Read Messages:\n");
+        for (String msg : previousMessages) {
+            previousMessagesText.append("- ").append(msg).append("\n"); // Customize the format as needed
+        }
+        previousMessagesTextView.setText(previousMessagesText.toString());
+    }
 
 
     @Override

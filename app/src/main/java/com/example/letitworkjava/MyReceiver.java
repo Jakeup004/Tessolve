@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.telephony.SmsMessage;
 import android.widget.Toast;
-import android.os.Bundle;
 
 public class MyReceiver extends BroadcastReceiver {
 
@@ -17,7 +16,6 @@ public class MyReceiver extends BroadcastReceiver {
             if (smsMessage != null) {
                 String senderPhoneNumber = smsMessage.getOriginatingAddress();
                 String receivedMessage = smsMessage.getMessageBody();
-
                 // Display received message and sender's phone number in a Toast
                 String toastMessage = "Received Message: " + receivedMessage + "\nFrom: " + senderPhoneNumber;
                 Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show();
@@ -32,13 +30,18 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
     private SmsMessage extractMessage(Context context, Intent intent) {
-        Bundle dataBundle = intent.getExtras();
-        if (dataBundle != null) {
-            Object[] pdus = (Object[]) dataBundle.get("pdus");
-            if (pdus != null && pdus.length > 0) {
-                // Create an SmsMessage from the received PDU
-                return SmsMessage.createFromPdu((byte[]) pdus[0], dataBundle.getString("format"));
+        SmsMessage[] messages;
+        try {
+            Object[] pdus = (Object[]) intent.getExtras().get("pdus");
+            if (pdus != null) {
+                messages = new SmsMessage[pdus.length];
+                for (int i = 0; i < messages.length; i++) {
+                    messages[i] = SmsMessage.createFromPdu((byte[]) pdus[i]);
+                }
+                return messages[0];
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
